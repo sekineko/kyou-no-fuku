@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="きょうのふく">
-<title>きょうのふく</title>
+<meta name="apple-mobile-web-app-title" content="今日の服">
+<title>今日の服</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
@@ -80,34 +80,34 @@ button:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
 <main>
   <div class="bar">
     <div class="days">
-      <button id="btn-today" aria-pressed="true">きょう</button>
-      <button id="btn-tomorrow" aria-pressed="false">あした</button>
+      <button id="btn-today" aria-pressed="true">今日</button>
+      <button id="btn-tomorrow" aria-pressed="false">明日</button>
     </div>
-    <div class="status" id="status">よみこみちゅう…</div>
+    <div class="status" id="status">読み込み中…</div>
   </div>
 
   <section>
-    <div class="date" id="date"><span id="md">--月--日</span><span class="dow" id="dow">-ようび</span></div>
+    <div class="date" id="date"><span id="md">--月--日</span><span class="dow" id="dow">-曜日</span></div>
     <div class="holiday" id="holiday" hidden></div>
     <div class="next" id="next" hidden></div>
   </section>
 
   <section class="wx">
     <div class="panel">
-      <div class="label">しんじゅくの てんき</div>
+      <div class="label">新宿区の天気</div>
       <div class="weather"><span class="icon" id="wx-icon">…</span><span id="wx-text"></span></div>
       <div class="sub" id="rain"></div>
-      <div class="umbrella" id="umbrella" hidden>かさを もっていこう</div>
+      <div class="umbrella" id="umbrella" hidden>傘を持っていこう</div>
     </div>
     <div class="panel">
-      <div class="label">ひるま（9じ〜17じ）の へいきん</div>
+      <div class="label">日中（9時〜17時）の平均気温</div>
       <div class="temp"><span id="avg">--</span><small>℃</small></div>
       <div class="sub" id="maxmin"></div>
     </div>
   </section>
 
   <section class="wear">
-    <div class="label">きょうの ふく</div>
+    <div class="label">今日の服</div>
     <div class="wear-main" id="wear">…</div>
     <div class="ladder" id="ladder"></div>
   </section>
@@ -125,20 +125,20 @@ const CLOTHES = [
   { min: -Infinity, name: "ぼうかんぐ",       kanji: "防寒具" },
 ];
 const LAT = 35.6938, LON = 139.7034; // 新宿区役所
-const DOW = ["にちようび", "げつようび", "かようび", "すいようび", "もくようび", "きんようび", "どようび"];
+const DOW = ["日曜日", "月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日"];
 
 // WMO 天気コード → 表示
 function weatherOf(code) {
-  if (code === 0) return ["☀️", "はれ"];
-  if (code <= 2) return ["🌤️", "はれ ときどき くもり"];
-  if (code === 3) return ["☁️", "くもり"];
-  if (code <= 48) return ["🌫️", "きり"];
-  if (code <= 57) return ["🌦️", "こさめ"];
-  if (code <= 67) return ["☔", "あめ"];
-  if (code <= 77) return ["☃️", "ゆき"];
-  if (code <= 82) return ["🌧️", "にわかあめ"];
-  if (code <= 86) return ["🌨️", "にわかゆき"];
-  return ["⛈️", "かみなり"];
+  if (code === 0) return ["☀️", "晴れ"];
+  if (code <= 2) return ["🌤️", "晴れ時々曇り"];
+  if (code === 3) return ["☁️", "曇り"];
+  if (code <= 48) return ["🌫️", "霧"];
+  if (code <= 57) return ["🌦️", "小雨"];
+  if (code <= 67) return ["☔", "雨"];
+  if (code <= 77) return ["☃️", "雪"];
+  if (code <= 82) return ["🌧️", "にわか雨"];
+  if (code <= 86) return ["🌨️", "にわか雪"];
+  return ["⛈️", "雷雨"];
 }
 
 let forecast = null, holidays = {}, offset = 0;
@@ -165,9 +165,9 @@ function renderLadder(idx) {
 
 function render() {
   const d = targetDate(), key = ymd(d);
-  document.getElementById("md").textContent = `${d.getMonth() + 1}がつ ${d.getDate()}にち`;
+  document.getElementById("md").textContent = `${d.getMonth() + 1}月${d.getDate()}日`;
   document.getElementById("dow").textContent = DOW[d.getDay()];
-  document.querySelector(".wear .label").textContent = offset ? "あしたの ふく" : "きょうの ふく";
+  document.querySelector(".wear .label").textContent = offset ? "明日の服" : "今日の服";
 
   const hol = holidays[key];
   const dateEl = document.getElementById("date");
@@ -180,7 +180,7 @@ function render() {
   if (upcoming) {
     const nd = new Date(upcoming + "T00:00:00");
     const days = Math.round((nd - d) / 86400000);
-    nextEl.textContent = `つぎの しゅくじつ：${nd.getMonth() + 1}/${nd.getDate()}（${DOW[nd.getDay()][0]}）${holidays[upcoming]}　あと ${days}にち`;
+    nextEl.textContent = `次の祝日：${nd.getMonth() + 1}/${nd.getDate()}（${DOW[nd.getDay()][0]}）${holidays[upcoming]}　あと${days}日`;
     nextEl.hidden = false;
   } else nextEl.hidden = true;
 
@@ -197,11 +197,11 @@ function render() {
 
   document.getElementById("wx-icon").textContent = icon;
   document.getElementById("wx-text").textContent = text;
-  document.getElementById("rain").textContent = `あめの かくりつ ${pop ?? "-"}%`;
+  document.getElementById("rain").textContent = `降水確率 ${pop ?? "-"}%`;
   document.getElementById("umbrella").hidden = !(pop >= 50);
   document.getElementById("avg").textContent = avg.toFixed(1);
   document.getElementById("maxmin").textContent =
-    `さいこう ${forecast.daily.temperature_2m_max[di].toFixed(0)}℃ ／ さいてい ${forecast.daily.temperature_2m_min[di].toFixed(0)}℃`;
+    `最高 ${forecast.daily.temperature_2m_max[di].toFixed(0)}℃ ／ 最低 ${forecast.daily.temperature_2m_min[di].toFixed(0)}℃`;
 
   const idx = CLOTHES.findIndex(c => avg >= c.min);
   document.getElementById("wear").textContent = CLOTHES[idx].kanji;
@@ -216,9 +216,9 @@ async function load() {
       `&timezone=Asia%2FTokyo&forecast_days=3`;
     forecast = await (await fetch(url)).json();
     const t = new Date();
-    status.textContent = `${t.getHours()}:${String(t.getMinutes()).padStart(2, "0")} こうしん`;
+    status.textContent = `${t.getHours()}:${String(t.getMinutes()).padStart(2, "0")} 更新`;
   } catch (e) {
-    status.textContent = "てんきを よみこめませんでした";
+    status.textContent = "天気を読み込めませんでした";
   }
   try {
     holidays = await (await fetch("https://holidays-jp.github.io/api/v1/date.json")).json();
@@ -235,7 +235,7 @@ function select(o) {
 document.getElementById("btn-today").onclick = () => select(0);
 document.getElementById("btn-tomorrow").onclick = () => select(1);
 
-// 夕方以降は「あした」を最初に表示
+// 夕方以降は「明日」を最初に表示
 if (new Date().getHours() >= 18) offset = 1;
 select(offset);
 load();
