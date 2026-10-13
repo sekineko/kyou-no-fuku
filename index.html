@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="きょうのふく">
+<title>きょうのふく</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+/* 縦: 日付 → 天気と気温 → 服装（はしご状の7段階で今日の段を強調） */
+:root {
+  --bg: #eef4f7;
+  --card: #ffffff;
+  --fg: #1d2b33;
+  --muted: #5b6f7a;
+  --line: #d3e0e7;
+  --accent: #0f7c9c;
+  --sun: #d9480f;
+  --holiday: #c2255c;
+  --font: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "Hiragino Sans", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111a1f; --card: #1a262d; --fg: #eef4f7; --muted: #9fb3be;
+    --line: #2b3b44; --accent: #4cc3e6; --sun: #ff8a50; --holiday: #ff7aa8;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font);
+  padding: env(safe-area-inset-top, 0px) max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px));
+  font-variant-numeric: tabular-nums;
+}
+main { max-width: 1100px; margin: 0 auto; padding-block: 2.5vh; display: grid; gap: 2vh; }
+
+.date { display: flex; flex-wrap: wrap; align-items: baseline; gap: .2em .5em; font-weight: 900; font-size: clamp(2.4rem, 7vw, 5.5rem); line-height: 1.1; }
+.date .dow { color: var(--muted); }
+.date.sat .dow { color: var(--accent); }
+.date.sun .dow, .date.hol .dow { color: var(--holiday); }
+.holiday { font-size: clamp(1.4rem, 3.6vw, 2.6rem); font-weight: 700; color: var(--holiday); }
+.next { font-size: clamp(1rem, 2.2vw, 1.5rem); color: var(--muted); font-weight: 500; }
+
+.wx { display: grid; grid-template-columns: 1fr 1fr; gap: 2vh 2vw; }
+.panel { background: var(--card); border-radius: 24px; padding: 2.2vh 2.4vw; min-width: 0; }
+.label { font-size: clamp(.95rem, 1.8vw, 1.3rem); color: var(--muted); font-weight: 700; letter-spacing: .08em; }
+.weather { display: flex; align-items: center; gap: .3em; font-size: clamp(2.2rem, 6vw, 4.6rem); font-weight: 900; }
+.weather .icon { font-size: 1.15em; }
+.temp { font-size: clamp(3.4rem, 10vw, 7.5rem); font-weight: 900; line-height: 1; color: var(--sun); }
+.temp small { font-size: .4em; color: var(--fg); margin-left: .1em; }
+.sub { font-size: clamp(1rem, 2vw, 1.4rem); color: var(--muted); margin-top: .4em; }
+.umbrella { font-size: clamp(1.3rem, 3vw, 2.2rem); font-weight: 900; color: var(--accent); margin-top: .3em; }
+
+.wear { background: var(--card); border-radius: 24px; padding: 2.4vh 2.4vw; display: grid; gap: 1.6vh; }
+.wear-main { font-size: clamp(3.4rem, 11vw, 8rem); font-weight: 900; line-height: 1.05; color: var(--accent); text-wrap: balance; }
+.ladder { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+.step { border: 2px solid var(--line); border-radius: 14px; padding: .5em .2em; text-align: center; font-size: clamp(.8rem, 1.7vw, 1.2rem); font-weight: 700; color: var(--muted); }
+.step b { display: block; font-size: .8em; font-weight: 500; }
+.step.on { background: var(--accent); border-color: var(--accent); color: var(--card); }
+
+.bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.days { display: flex; gap: 8px; }
+button { font: inherit; font-weight: 700; font-size: clamp(1.1rem, 2.4vw, 1.6rem); padding: .35em 1.1em; border-radius: 999px; border: 2px solid var(--accent); background: transparent; color: var(--accent); }
+button[aria-pressed="true"] { background: var(--accent); color: var(--card); }
+button:focus-visible { outline: 3px solid var(--sun); outline-offset: 2px; }
+.status { font-size: .95rem; color: var(--muted); }
+
+@media (max-width: 640px) {
+  .wx { grid-template-columns: 1fr; }
+  .ladder { grid-template-columns: repeat(4, 1fr); }
+}
+</style>
+</head>
+<body>
+<main>
+  <div class="bar">
+    <div class="days">
+      <button id="btn-today" aria-pressed="true">きょう</button>
+      <button id="btn-tomorrow" aria-pressed="false">あした</button>
+    </div>
+    <div class="status" id="status">よみこみちゅう…</div>
+  </div>
+
+  <section>
+    <div class="date" id="date"><span id="md">--月--日</span><span class="dow" id="dow">-ようび</span></div>
+    <div class="holiday" id="holiday" hidden></div>
+    <div class="next" id="next" hidden></div>
+  </section>
+
+  <section class="wx">
+    <div class="panel">
+      <div class="label">しんじゅくの てんき</div>
+      <div class="weather"><span class="icon" id="wx-icon">…</span><span id="wx-text"></span></div>
+      <div class="sub" id="rain"></div>
+      <div class="umbrella" id="umbrella" hidden>かさを もっていこう</div>
+    </div>
+    <div class="panel">
+      <div class="label">ひるま（9じ〜17じ）の へいきん</div>
+      <div class="temp"><span id="avg">--</span><small>℃</small></div>
+      <div class="sub" id="maxmin"></div>
+    </div>
+  </section>
+
+  <section class="wear">
+    <div class="label">きょうの ふく</div>
+    <div class="wear-main" id="wear">…</div>
+    <div class="ladder" id="ladder"></div>
+  </section>
+</main>
+
+<script>
+// 日中の平均気温（℃）がこの値以上ならその服装。上から順に判定。
+const CLOTHES = [
+  { min: 25,        name: "はんそで",       kanji: "半袖" },
+  { min: 21,        name: "うすての ながそで", kanji: "薄手の長袖" },
+  { min: 17,        name: "あつての ながそで", kanji: "厚手の長袖" },
+  { min: 13,        name: "うすての うわぎ",  kanji: "薄手の上着" },
+  { min: 9,         name: "あつての うわぎ",  kanji: "厚手の上着" },
+  { min: 5,         name: "コート",          kanji: "コート" },
+  { min: -Infinity, name: "ぼうかんぐ",       kanji: "防寒具" },
+];
+const LAT = 35.6938, LON = 139.7034; // 新宿区役所
+const DOW = ["にちようび", "げつようび", "かようび", "すいようび", "もくようび", "きんようび", "どようび"];
+
+// WMO 天気コード → 表示
+function weatherOf(code) {
+  if (code === 0) return ["☀️", "はれ"];
+  if (code <= 2) return ["🌤️", "はれ ときどき くもり"];
+  if (code === 3) return ["☁️", "くもり"];
+  if (code <= 48) return ["🌫️", "きり"];
+  if (code <= 57) return ["🌦️", "こさめ"];
+  if (code <= 67) return ["☔", "あめ"];
+  if (code <= 77) return ["☃️", "ゆき"];
+  if (code <= 82) return ["🌧️", "にわかあめ"];
+  if (code <= 86) return ["🌨️", "にわかゆき"];
+  return ["⛈️", "かみなり"];
+}
+
+let forecast = null, holidays = {}, offset = 0;
+
+function ymd(d) {
+  const p = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+function targetDate() {
+  const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + offset); return d;
+}
+
+function renderLadder(idx) {
+  const el = document.getElementById("ladder");
+  el.innerHTML = "";
+  CLOTHES.forEach((c, i) => {
+    const s = document.createElement("div");
+    s.className = "step" + (i === idx ? " on" : "");
+    const range = i === 0 ? `${c.min}℃〜` : i === CLOTHES.length - 1 ? `〜${CLOTHES[i - 1].min}℃` : `${c.min}〜${CLOTHES[i - 1].min}℃`;
+    s.innerHTML = `${c.kanji}<b>${range}</b>`;
+    el.appendChild(s);
+  });
+}
+
+function render() {
+  const d = targetDate(), key = ymd(d);
+  document.getElementById("md").textContent = `${d.getMonth() + 1}がつ ${d.getDate()}にち`;
+  document.getElementById("dow").textContent = DOW[d.getDay()];
+  document.querySelector(".wear .label").textContent = offset ? "あしたの ふく" : "きょうの ふく";
+
+  const hol = holidays[key];
+  const dateEl = document.getElementById("date");
+  dateEl.className = "date" + (d.getDay() === 6 ? " sat" : "") + (d.getDay() === 0 ? " sun" : "") + (hol ? " hol" : "");
+  const holEl = document.getElementById("holiday");
+  holEl.hidden = !hol; holEl.textContent = hol ? `🎌 ${hol}` : "";
+
+  const nextEl = document.getElementById("next");
+  const upcoming = Object.keys(holidays).filter(k => k > key).sort()[0];
+  if (upcoming) {
+    const nd = new Date(upcoming + "T00:00:00");
+    const days = Math.round((nd - d) / 86400000);
+    nextEl.textContent = `つぎの しゅくじつ：${nd.getMonth() + 1}/${nd.getDate()}（${DOW[nd.getDay()][0]}）${holidays[upcoming]}　あと ${days}にち`;
+    nextEl.hidden = false;
+  } else nextEl.hidden = true;
+
+  if (!forecast) { renderLadder(-1); return; }
+  const di = forecast.daily.time.indexOf(key);
+  if (di < 0) return;
+  const temps = forecast.hourly.time
+    .map((t, i) => [t, forecast.hourly.temperature_2m[i]])
+    .filter(([t]) => t.startsWith(key) && +t.slice(11, 13) >= 9 && +t.slice(11, 13) <= 17)
+    .map(([, v]) => v);
+  const avg = temps.reduce((a, b) => a + b, 0) / temps.length;
+  const [icon, text] = weatherOf(forecast.daily.weather_code[di]);
+  const pop = forecast.daily.precipitation_probability_max[di];
+
+  document.getElementById("wx-icon").textContent = icon;
+  document.getElementById("wx-text").textContent = text;
+  document.getElementById("rain").textContent = `あめの かくりつ ${pop ?? "-"}%`;
+  document.getElementById("umbrella").hidden = !(pop >= 50);
+  document.getElementById("avg").textContent = avg.toFixed(1);
+  document.getElementById("maxmin").textContent =
+    `さいこう ${forecast.daily.temperature_2m_max[di].toFixed(0)}℃ ／ さいてい ${forecast.daily.temperature_2m_min[di].toFixed(0)}℃`;
+
+  const idx = CLOTHES.findIndex(c => avg >= c.min);
+  document.getElementById("wear").textContent = CLOTHES[idx].kanji;
+  renderLadder(idx);
+}
+
+async function load() {
+  const status = document.getElementById("status");
+  try {
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
+      `&hourly=temperature_2m&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max` +
+      `&timezone=Asia%2FTokyo&forecast_days=3`;
+    forecast = await (await fetch(url)).json();
+    const t = new Date();
+    status.textContent = `${t.getHours()}:${String(t.getMinutes()).padStart(2, "0")} こうしん`;
+  } catch (e) {
+    status.textContent = "てんきを よみこめませんでした";
+  }
+  try {
+    holidays = await (await fetch("https://holidays-jp.github.io/api/v1/date.json")).json();
+  } catch (e) { /* 祝日なしで表示 */ }
+  render();
+}
+
+function select(o) {
+  offset = o;
+  document.getElementById("btn-today").setAttribute("aria-pressed", o === 0);
+  document.getElementById("btn-tomorrow").setAttribute("aria-pressed", o === 1);
+  render();
+}
+document.getElementById("btn-today").onclick = () => select(0);
+document.getElementById("btn-tomorrow").onclick = () => select(1);
+
+// 夕方以降は「あした」を最初に表示
+if (new Date().getHours() >= 18) offset = 1;
+select(offset);
+load();
+setInterval(load, 30 * 60 * 1000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) load(); });
+</script>
+</body>
+</html>
